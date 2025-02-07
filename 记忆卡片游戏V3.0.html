@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>记忆卡片游戏</title>
+<style>
+    body {
+        text-align: center;
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f9;
+        margin: 0;
+        padding: 0;
+    }
+    .intro, .controls {
+        margin: 20px;
+    }
+    .intro {
+        background-color: #ffffff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        max-width: 600px;
+        margin: 50px auto;
+        text-align: center;
+    }
+    .btn {
+        background-color: #4CAF50;
+        color: white;
+        padding: 15px 30px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 18px;
+    }
+    .btn:hover {
+        background-color: #45a049;
+    }
+    .container {
+        display: none;
+        max-width: 800px;
+        margin: 20px auto;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    .card {
+        width: 100px;
+        height: 100px;
+        margin: 10px;
+        background-color: #4CAF50;
+        border: 2px solid #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 40px;
+        color: transparent;
+        transform: rotateY(180deg);
+        transition: transform 0.5s;
+    }
+    .card.flipped {
+        color: #000;
+        background-color: #fff;
+        transform: rotateY(0deg);
+        cursor: default;
+    }
+    .header {
+        display: none;
+        margin: 20px;
+        text-align: center;
+    }
+    .status {
+        margin-top: 20px;
+        font-size: 18px;
+    }
+    .status span {
+        font-weight: bold;
+    }
+    .controls-game {
+        margin: 20px;
+    }
+</style>
+</head>
+<body>
+    <div class="intro">
+        <h1>记忆卡片游戏</h1>
+        <p>欢迎来到记忆卡片游戏。通过翻开卡片，找到相同图案的卡片进行配对。每一次只能翻开两张卡片。选择不同的难度挑战你的记忆力！</p>
+        <div class="controls">
+            <label for="difficulty">选择卡片组数：</label>
+            <select id="difficulty">
+                <option value="4">4 组</option>
+                <option value="8">8 组</option>
+                <option value="12">12 组</option>
+                <option value="16">16 组</option>
+            </select>
+            <button class="btn" onclick="startGame()">开始游戏</button>
+        </div>
+    </div>
+    
+    <div class="header">
+        <h1>记忆卡片游戏</h1>
+        <div class="status">
+            <span id="gameDifficulty"></span>
+            &nbsp;|&nbsp;
+            <span id="timeElapsed">时间：0秒</span>
+        </div>
+        <div class="controls-game">
+            <button class="btn" onclick="pauseGame()">暂停</button>
+            <button class="btn" onclick="endGame()">结束</button>
+        </div>
+    </div>
+
+    <div class="container" id="gameBoard"></div>
+
+<script>
+    let startTime;
+    let timerInterval;
+    let gamePaused = false;
+    let elapsedTime = 0;
+
+    function startGame() {
+        const difficulty = parseInt(document.getElementById('difficulty').value);
+        document.querySelector('.intro').style.display = 'none';
+        document.querySelector('.header').style.display = 'block';
+        document.querySelector('.container').style.display = 'flex';
+
+        document.getElementById('gameDifficulty').innerText = `难度：${difficulty} 组`;
+
+        startTime = new Date();
+        timerInterval = setInterval(updateTimeElapsed, 1000);
+
+        initializeGame(difficulty);
+    }
+
+    function initializeGame(numPairs) {
+        const gameBoard = document.getElementById('gameBoard');
+        gameBoard.innerHTML = "";
+        const symbols = generateSymbols(numPairs);
+        const cards = symbols.concat(symbols);
+        shuffleArray(cards);
+
+        cards.forEach(symbol => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = symbol;
+            card.addEventListener('click', function() {
+                flipCard(card);
+            });
+            gameBoard.appendChild(card);
+        });
+    }
+
+    function generateSymbols(pairs) {
+        const emojiSymbols = ['😀', '😂', '🥰', '😎', '🤩', '😜', '🤡', '👽', '👾', '🎃', '🤠', '🎩', '🐱', '🐶', '🐭', '🐹'];
+        return emojiSymbols.slice(0, pairs);
+    }
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    let flippedCards = [];
+    let matchedPairs = 0;
+
+    function flipCard(card) {
+        if (card.classList.contains('flipped') || flippedCards.length === 2) return;
+        if (gamePaused) return;
+
+        card.classList.add('flipped');
+
+        flippedCards.push(card);
+        if (flippedCards.length === 2) {
+            if (flippedCards[0].innerHTML === flippedCards[1].innerHTML) {
+                flippedCards = [];
+                matchedPairs++;
+                if (matchedPairs === parseInt(document.getElementById('difficulty').value)) {
+                    clearInterval(timerInterval);
+                    setTimeout(() => alert(`恭喜你，游戏完成！消耗的总时间：${elapsedTime}秒`), 500);
+                }
+            } else {
+                setTimeout(() => {
+                    flippedCards.forEach(card => card.classList.remove('flipped'));
+                    flippedCards = [];
+                }, 1000);
+            }
+        }
+    }
+    
+    function updateTimeElapsed() {
+        if (!gamePaused) {
+            elapsedTime = Math.floor((new Date() - startTime) / 1000);
+            document.getElementById('timeElapsed').innerText = `时间：${elapsedTime}秒`;
+        }
+    }
+
+    function pauseGame() {
+        gamePaused = !gamePaused;
+        if (gamePaused) {
+            clearInterval(timerInterval);
+            document.querySelector("button[onclick='pauseGame()']").innerText = '继续';
+        } else {
+            startTime = new Date(new Date() - elapsedTime * 1000);
+            timerInterval = setInterval(updateTimeElapsed, 1000);
+            document.querySelector("button[onclick='pauseGame()']").innerText = '暂停';
+        }
+    }
+
+    function endGame() {
+        clearInterval(timerInterval);
+        document.querySelector('.header').style.display = 'none';
+        document.querySelector('.container').style.display = 'none';
+        document.querySelector('.intro').style.display = 'block';
+        elapsedTime = 0;
+        matchedPairs = 0;
+        gamePaused = false;
+    }
+
+</script>
+</body>
+</html>
